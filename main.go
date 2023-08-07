@@ -93,6 +93,10 @@ func searchHandler (newsApi *news.Client) http.HandlerFunc {
 			Result: result,
 		}
 
+		if ok := !searchResult.IsLastPage(); ok {
+			searchResult.NextPage++
+		}
+
 		buffer := &bytes.Buffer{}
 		err = indexTemplate.Execute(buffer, searchResult)
 		if err != nil {
@@ -101,6 +105,22 @@ func searchHandler (newsApi *news.Client) http.HandlerFunc {
 		}
 
 		buffer.WriteTo(response)
-		//indexTemplate.Execute(response, nil)
 	}
 }
+
+func (search *SearchQuery) IsLastPage() bool {
+	return search.NextPage >= search.TotalPages
+}
+
+func (search *SearchQuery) CurrentPage() int {
+	if search.NextPage == 1 {
+		return search.NextPage
+	}
+
+	return search.NextPage - 1
+}
+
+func (search *SearchQuery) PreviousPage() int {
+	return search.CurrentPage() - 1
+}
+
