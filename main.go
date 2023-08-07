@@ -4,14 +4,23 @@ import (
 	"net/http"
 	"net/url"
 	"html/template"
-	"fmt"
+	"math"
 	"log"
 	"os"
 	"time"
+	"strconv"
+	"bytes"
 
 	"github.com/joho/godotenv"
 	"news-aggregator-go/news"
 )
+
+type SearchQuery struct {
+	Query string
+	NextPage int
+	TotalPages int
+	Result *news.Result
+}
 
 var indexTemplate = template.Must(template.ParseFiles("index.html"))
 
@@ -38,7 +47,15 @@ func main() {
 }
 
 func indexHandler (response http.ResponseWriter, request *http.Request) {
-	indexTemplate.Execute(response, nil)
+	buffer := &bytes.Buffer{}
+	err := indexTemplate.Execute(buffer, nil)
+	if err != nil {
+		http.Error(response, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	buffer.WriteTo(response)
+
 }
 
 func searchHandler (newsApi *news.Client) http.HandlerFunc {
@@ -63,8 +80,27 @@ func searchHandler (newsApi *news.Client) http.HandlerFunc {
 			return
 		}
 		
-		fmt.Printf("%+v", result)
+		nextPage, err := strconv.Atoi(pageQuery)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-		indexTemplate.Execute(response, nil)
+		searchResult := &SearchQuery {
+			Query: searchQuery,
+			NextPage: nextPage,
+			TotalPages: int(math.Ceil(float64(result.TotalResults) / float64(newsApi.MaxResult))),
+			Result: result,
+		}
+
+		buffer := &bytes.Buffer{}
+		err = indexTemplate.Execute(buffer, searchResult)
+		if err != nil {
+			http.Error(response, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		buffer.WriteTo(response)
+		//indexTemplate.Execute(response, nil)
 	}
 }

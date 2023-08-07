@@ -12,7 +12,7 @@ import (
 type Client struct {
 	httpClient *http.Client
 	key string
-	maxResult int
+	MaxResult int
 }
 
 type Result struct {
@@ -44,7 +44,7 @@ func NewClient(httpClient *http.Client, key string, maxResult int) *Client {
 }
 
 func (c *Client) FetchNews(query, page string) (*Result, error) {
-	address := fmt.Sprintf("https://newsapi.org/v2/everything?q=%s&pageSize=%d&page=%s&apiKey=%s&sortBy=publishedAt&language=en", url.QueryEscape(query), c.maxResult, page, c.key)
+	address := fmt.Sprintf("https://newsapi.org/v2/everything?q=%s&pageSize=%d&page=%s&apiKey=%s&sortBy=publishedAt&language=en", url.QueryEscape(query), c.MaxResult, page, c.key)
 	response, err := c.httpClient.Get(address)
 	if err != nil {
 		return nil, err
@@ -64,4 +64,9 @@ func (c *Client) FetchNews(query, page string) (*Result, error) {
 
 	result := &Result{}
 	return result, json.Unmarshal(body, result)
+}
+
+func (article *Article) FormatDate() string {
+	year, month, day := article.PublishedAt.Date()
+	return fmt.Sprintf("%v %d, %d", month, day, year)
 }
